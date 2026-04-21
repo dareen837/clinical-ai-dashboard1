@@ -9,18 +9,17 @@ st.set_page_config(page_title="AI Clinical System", layout="centered")
 st.title("🏥 AI Clinical Dashboard")
 st.caption("Explainable AI Medical Prediction System")
 
-st.subheader("SHAP Visualization")
+st.subheader("📊 SHAP Explanation")
 
-fig = shap.force_plot(
-    explainer.expected_value[1],
-    shap_vals,
-    input_data[0],
-    feature_names=feature_names,
-    matplotlib=True
-)
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+
+ax.barh(feature_names, shap_vals)
+ax.set_title("SHAP Feature Impact")
+ax.set_xlabel("Impact on Risk")
 
 st.pyplot(fig)
-
 # ---------- TRAINING DATA ----------
 data = pd.DataFrame({
     "Hb": [10, 14, 9, 13, 11, 15, 8, 12, 16, 9],
