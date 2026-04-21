@@ -1,26 +1,28 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
 from fpdf import FPDF
 import os
 
-# ---------- PAGE CONFIG ----------
+# ---------- PAGE ----------
 st.set_page_config(page_title="AI Clinical System", layout="centered")
 
 # ---------- STYLE ----------
 st.markdown("""
 <style>
 .stApp {
-    background-color: #0b1f3a;  /* 💙 dark blue */
+    background-color: #0b1f3a;
+    color: white;
+    text-align: center;
 }
 
-/* كل النص أبيض أو أوضح على الخلفية الغامقة */
 html, body, [class*="css"] {
     color: white;
     text-align: center;
 }
 
-/* login card */
 .login-box {
     background: #112a4d;
     padding: 30px;
@@ -28,24 +30,6 @@ html, body, [class*="css"] {
     width: 350px;
     margin: auto;
     box-shadow: 0px 4px 20px rgba(0,0,0,0.4);
-    text-align: center;
-}
-
-/* buttons */
-.stButton>button {
-    background-color: #1f6feb;
-    color: white;
-    border-radius: 10px;
-    display: block;
-    margin: auto;
-}
-
-/* metrics */
-div[data-testid="metric-container"] {
-    background-color: #112a4d;
-    padding: 10px;
-    border-radius: 10px;
-    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -56,14 +40,13 @@ st.image(
     use_container_width=True
 )
 
-st.title("🏥 AI Clinical Dashboard")
-st.caption("Welcome to the medical decision system")
+st.title("AI Clinical Dashboard")
+st.caption("Machine Learning based medical risk prediction")
 
-# ---------- SESSION ----------
+# ---------- LOGIN ----------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ---------- LOGIN ----------
 if not st.session_state.logged_in:
 
     st.markdown("<div class='login-box'>", unsafe_allow_html=True)
@@ -76,12 +59,28 @@ if not st.session_state.logged_in:
     if st.button("Login"):
         if user == "doctor" and password == "1234":
             st.session_state.logged_in = True
-            st.success("Login successful 💙")
+            st.success("Welcome Doctor 💙")
         else:
             st.error("Wrong credentials")
 
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
+
+# ---------- TRAINING DATA ----------
+data = pd.DataFrame({
+    "hb": [10, 14, 9, 13, 11, 15, 8, 12, 16, 9],
+    "wbc": [12000, 6000, 15000, 7000, 11000, 5000, 16000, 8000, 5500, 14000],
+    "crp": [10, 2, 15, 3, 8, 1, 20, 4, 2, 18],
+    "glucose": [130, 90, 150, 85, 120, 80, 160, 95, 88, 140],
+    "risk": [1, 0, 1, 0, 1, 0, 1, 0, 0, 1]
+})
+
+# ---------- MODEL ----------
+X = data[["hb", "wbc", "crp", "glucose"]]
+y = data["risk"]
+
+model = LogisticRegression()
+model.fit(X, y)
 
 # ---------- INPUTS ----------
 st.sidebar.header("Patient Data")
@@ -96,55 +95,27 @@ wbc = st.sidebar.number_input("WBC", 0.0, 20000.0, 7000.0)
 crp = st.sidebar.number_input("CRP", 0.0, 100.0, 3.0)
 glucose = st.sidebar.number_input("Glucose", 0.0, 300.0, 90.0)
 
-# ---------- ANALYSIS ----------
-def analyze():
+# ---------- PREDICTION ----------
+def predict_risk(hb, wbc, crp, glucose):
 
-    findings = []
-    score = 0
+    pred = model.predict([[hb, wbc, crp, glucose]])[0]
+    prob = model.predict_proba([[hb, wbc, crp, glucose]])[0][1]
 
-    hb_limit = 12 if gender == "Female" else 13
-    if age < 18:
-        hb_limit = 11
-
-    if hb < hb_limit:
-        findings.append("Low Hb → anemia")
-        score += 1
-
-    if wbc > 11000:
-        findings.append("High WBC → infection")
-        score += 1
-
-    if crp > 5:
-        findings.append("High CRP → inflammation")
-        score += 1
-
-    if glucose > 110:
-        findings.append("High glucose → hyperglycemia")
-        score += 1
-
-    if gender == "Female" and pregnant:
-        if hb < 11:
-            findings.append("Pregnancy + low Hb risk")
-        if glucose > 95:
-            findings.append("Gestational diabetes risk")
-
-    if score == 0:
+    if pred == 0:
         risk = "🟢 Low Risk"
-    elif score <= 2:
-        risk = "🟡 Mild Risk"
-    elif score <= 3:
-        risk = "🟠 Moderate Risk"
     else:
         risk = "🔴 High Risk"
 
-    return findings, risk
+    return risk, prob
 
 # ---------- RUN ----------
-if st.sidebar.button("Run Analysis"):
+if st.sidebar.button("Run AI Prediction"):
 
-    findings, risk = analyze()
+    risk, prob = predict_risk(hb, wbc, crp, glucose)
 
-    st.subheader("Patient Overview")
+    st.subheader("AI Prediction Result")
+
+    st.write("Patient ID:", patient_id)
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -155,17 +126,13 @@ if st.sidebar.button("Run Analysis"):
 
     st.markdown("---")
 
-    st.subheader("Risk Level")
+    st.subheader("Risk Prediction")
 
     st.write(risk)
-
-    st.subheader("Findings")
-
-    for f in findings:
-        st.write("🩺", f)
+    st.write("Probability:", round(prob, 2))
 
     # ---------- GRAPH ----------
-    st.subheader("Lab Profile")
+    st.subheader("Lab Visualization")
 
     labels = ["Hb", "WBC", "CRP", "Glucose"]
     values = [hb, wbc/1000, crp, glucose/10]
@@ -179,7 +146,19 @@ if st.sidebar.button("Run Analysis"):
     st.pyplot(fig)
 
     # ---------- REPORT ----------
-    report = f"Patient ID: {patient_id}\n\n" + "\n".join(findings) + f"\n\nRisk: {risk}"
+    report = f"""
+AI Medical Report
 
-    st.subheader("Medical Report")
+Patient ID: {patient_id}
+
+Hb: {hb}
+WBC: {wbc}
+CRP: {crp}
+Glucose: {glucose}
+
+Prediction: {risk}
+Probability: {round(prob, 2)}
+"""
+
+    st.subheader("Report")
     st.text(report)
