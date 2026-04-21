@@ -7,15 +7,15 @@ import os
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="AI Clinical System", layout="centered")
 
-# ---------- GLOBAL STYLE ----------
+# ---------- STYLE ----------
 st.markdown("""
 <style>
 .stApp {
-    background-color: #ffe4ec;
+    background-color: #dbeeff;  /* 💙 light blue */
 }
 
-/* كل الكلام أسود */
-html, body, [class*="css"]  {
+/* كل النص أسود */
+html, body, [class*="css"] {
     color: black;
     text-align: center;
 }
@@ -29,6 +29,12 @@ html, body, [class*="css"]  {
     margin: auto;
     box-shadow: 0px 4px 20px rgba(0,0,0,0.1);
     text-align: center;
+}
+
+/* أزرار في النص */
+.stButton>button {
+    display: block;
+    margin: auto;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -64,7 +70,6 @@ if not st.session_state.logged_in:
             st.error("Wrong credentials")
 
     st.markdown("</div>", unsafe_allow_html=True)
-
     st.stop()
 
 # ---------- INPUTS ----------
@@ -123,19 +128,6 @@ def analyze():
 
     return findings, risk
 
-# ---------- PDF ----------
-def create_pdf(text):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    for line in text.split("\n"):
-        pdf.cell(200, 8, txt=line, ln=True)
-
-    file_path = "report.pdf"
-    pdf.output(file_path)
-    return file_path
-
 # ---------- RUN ----------
 if st.sidebar.button("Run Analysis"):
 
@@ -183,41 +175,3 @@ if st.sidebar.button("Run Analysis"):
 
     st.subheader("Medical Report")
     st.text(report)
-
-    file_path = create_pdf(report)
-
-    with open(file_path, "rb") as f:
-        st.download_button(
-            "Download PDF Report",
-            f,
-            file_name="medical_report.pdf",
-            mime="application/pdf"
-        )
-
-# ---------- DATABASE ----------
-st.markdown("---")
-st.subheader("Patient Database")
-
-data = {
-    "PatientID": patient_id,
-    "Age": age,
-    "Gender": gender,
-    "Hb": hb,
-    "WBC": wbc,
-    "CRP": crp,
-    "Glucose": glucose
-}
-
-df = pd.DataFrame([data])
-
-file = "patients_data.csv"
-
-if os.path.exists(file):
-    db = pd.read_csv(file)
-    db = pd.concat([db, df], ignore_index=True)
-else:
-    db = df
-
-db.to_csv(file, index=False)
-
-st.dataframe(db, use_container_width=True)
