@@ -1,11 +1,36 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from fpdf import FPDF
 import os
 
-st.set_page_config(page_title="Smart Clinical System", layout="wide")
+# ---------- PAGE CONFIG ----------
+st.set_page_config(page_title="AI Clinical System", layout="wide")
 
-st.title("🧠 Clinical AI + Patient Database System")
+# ---------- LOGIN SYSTEM ----------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+def login():
+    st.sidebar.title("🔐 Login")
+    user = st.sidebar.text_input("Username")
+    password = st.sidebar.text_input("Password", type="password")
+
+    if st.sidebar.button("Login"):
+        if user == "doctor" and password == "1234":
+            st.session_state.logged_in = True
+            st.success("Welcome Doctor 💙")
+        else:
+            st.error("Invalid credentials")
+
+login()
+
+if not st.session_state.logged_in:
+    st.stop()
+
+# ---------- TITLE ----------
+st.title("🏥 AI Clinical Decision Support System")
+st.caption("Patient Analysis • Risk Scoring • Medical Reports")
 
 # ---------- INPUTS ----------
 st.sidebar.header("Patient Data")
@@ -13,13 +38,12 @@ st.sidebar.header("Patient Data")
 patient_id = st.sidebar.text_input("Patient ID", "P001")
 age = st.sidebar.number_input("Age", 0, 120, 25)
 gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
-pregnant = st.sidebar.checkbox("Pregnant (Female only)")
+pregnant = st.sidebar.checkbox("Pregnant")
 
-hb = st.sidebar.number_input("Hemoglobin (Hb)", 0.0, 20.0, 12.0)
+hb = st.sidebar.number_input("Hemoglobin", 0.0, 20.0, 12.0)
 wbc = st.sidebar.number_input("WBC", 0.0, 20000.0, 7000.0)
 crp = st.sidebar.number_input("CRP", 0.0, 100.0, 3.0)
 glucose = st.sidebar.number_input("Glucose", 0.0, 300.0, 90.0)
-
 
 # ---------- ANALYSIS ----------
 def analyze():
@@ -54,90 +78,138 @@ def analyze():
             findings.append("🤰 Gestational diabetes risk")
 
     if score == 0:
-        risk = "🟢 Low"
+        risk = "🟢 Low Risk"
     elif score <= 2:
-        risk = "🟡 Mild"
+        risk = "🟡 Mild Risk"
     elif score <= 3:
-        risk = "🟠 Moderate"
+        risk = "🟠 Moderate Risk"
     else:
-        risk = "🔴 High"
+        risk = "🔴 High Risk"
 
     return findings, risk
 
+# ---------- AI REPORT ----------
+def generate_report(findings, risk, patient_id):
 
-# ---------- SAVE TO DATABASE ----------
-def save_data(patient_id, age, gender, hb, wbc, crp, glucose, risk):
+    report = f"""
+    🏥 AI Medical Report
 
-    data = {
-        "PatientID": patient_id,
-        "Age": age,
-        "Gender": gender,
-        "Hb": hb,
-        "WBC": wbc,
-        "CRP": crp,
-        "Glucose": glucose,
-        "Risk": risk
-    }
+    Patient ID: {patient_id}
 
-    df = pd.DataFrame([data])
+    ----------------------
+    Findings:
+    """
 
-    file = "patients_data.csv"
+    for f in findings:
+        report += f"\n- {f}"
 
-    if os.path.exists(file):
-        df.to_csv(file, mode='a', header=False, index=False)
-    else:
-        df.to_csv(file, index=False)
+    report += f"""
 
+    ----------------------
+    Final Risk:
+    {risk}
 
-# ---------- UI ACTION ----------
-if st.sidebar.button("Analyze & Save"):
+    ----------------------
+    Recommendation:
+    Clinical follow-up recommended.
+    """
+
+    return report
+
+# ---------- PDF ----------
+def create_pdf(text):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    for line in text.split("\n"):
+        pdf.cell(200, 8, txt=line, ln=True)
+
+    file_path = "report.pdf"
+    pdf.output(file_path)
+
+    return file_path
+
+# ---------- RUN ----------
+if st.sidebar.button("Run Analysis"):
 
     findings, risk = analyze()
 
-    save_data(patient_id, age, gender, hb, wbc, crp, glucose, risk)
+    # metrics
+    col1, col2, col3, col4 = st.columns(4)
 
-    col1, col2 = st.columns(2)
+    col1.metric("Hb", hb)
+    col2.metric("WBC", wbc)
+    col3.metric("CRP", crp)
+    col4.metric("Glucose", glucose)
 
-    with col1:
-        st.subheader("🔬 Findings")
-        for f in findings:
-            st.write(f)
+    st.divider()
 
-    with col2:
-        st.subheader("⚠️ Risk")
-        st.markdown(f"### {risk}")
+    # risk
+    if "Low" in risk:
+        st.success(risk)
+    elif "Mild" in risk:
+        st.warning(risk)
+    else:
+        st.error(risk)
 
-    # ---------- GRAPH ----------
-    st.subheader("📊 Lab Visualization")
+    # findings
+    st.subheader("Clinical Findings")
+
+    for f in findings:
+        st.markdown(f"🩺 {f}")
+
+    # graph
+    st.subheader("Lab Profile")
 
     labels = ["Hb", "WBC", "CRP", "Glucose"]
     values = [hb, wbc/1000, crp, glucose/10]
 
     fig, ax = plt.subplots()
-    ax.bar(labels, values)
+    ax.plot(labels, values, marker="o")
     st.pyplot(fig)
 
+    # report
+    report = generate_report(findings, risk, patient_id)
 
-# ---------- DATABASE VIEW ----------
+    st.subheader("🧠 AI Report")
+    st.text(report)
+
+    # pdf
+    file_path = create_pdf(report)
+
+    with open(file_path, "rb") as f:
+        st.download_button(
+            "⬇️ Download PDF Report",
+            f,
+            file_name="medical_report.pdf",
+            mime="application/pdf"
+        )
+
+# ---------- DATABASE ----------
+st.divider()
 st.subheader("📁 Patient Database")
 
-if os.path.exists("patients_data.csv"):
-    db = pd.read_csv("patients_data.csv")
-    st.dataframe(db)
+data = {
+    "PatientID": patient_id,
+    "Age": age,
+    "Gender": gender,
+    "Hb": hb,
+    "WBC": wbc,
+    "CRP": crp,
+    "Glucose": glucose
+}
 
-    # ---------- SEARCH ----------
-    search_id = st.text_input("🔍 Search Patient by ID")
+df = pd.DataFrame([data])
 
-    if search_id:
-        result = db[db["PatientID"] == search_id]
-        st.write(result)
+file = "patients_data.csv"
 
-    # ---------- GRAPH FROM DB ----------
-    st.subheader("📊 Risk Distribution")
-
-    fig2, ax2 = plt.subplots()
-    db["Risk"].value_counts().plot(kind="bar", ax=ax2)
-    st.pyplot(fig2)
-
+if os.path.exists(file):
+    db = pd.read_csv(file)
+    db = pd.concat([db, df], ignore_index=True)
 else:
-    st.write("No data yet.")
+    db = df
+
+db.to_csv(file, index=False)
+
+st.dataframe(db, use_container_width=True)
