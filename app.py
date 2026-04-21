@@ -1,16 +1,16 @@
-from fpdf import FPDF
 import streamlit as st
+import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
-st.set_page_config(page_title="Smart Clinical Dashboard", layout="wide")
+st.set_page_config(page_title="Smart Clinical System", layout="wide")
 
-# ---------- TITLE ----------
-st.title("🧠 Clinical AI Interpretation Dashboard")
-st.write("Rule-based system for lab interpretation and visualization")
+st.title("🧠 Clinical AI + Patient Database System")
 
 # ---------- INPUTS ----------
 st.sidebar.header("Patient Data")
 
+patient_id = st.sidebar.text_input("Patient ID", "P001")
 age = st.sidebar.number_input("Age", 0, 120, 25)
 gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
 pregnant = st.sidebar.checkbox("Pregnant (Female only)")
@@ -32,15 +32,15 @@ def analyze():
         hb_limit = 11
 
     if hb < hb_limit:
-        findings.append("🩸 Low Hb → possible anemia")
+        findings.append("🩸 Low Hb → anemia")
         score += 1
 
     if wbc > 11000:
-        findings.append("🦠 High WBC → infection/inflammation")
+        findings.append("🦠 High WBC → infection")
         score += 1
 
     if crp > 5:
-        findings.append("🔥 High CRP → active inflammation")
+        findings.append("🔥 High CRP → inflammation")
         score += 1
 
     if glucose > 110:
@@ -49,44 +49,52 @@ def analyze():
 
     if gender == "Female" and pregnant:
         if hb < 11:
-            findings.append("🤰 Pregnancy + low Hb → iron deficiency risk")
+            findings.append("🤰 Pregnancy + low Hb risk")
         if glucose > 95:
-            findings.append("🤰 Pregnancy + high glucose → gestational diabetes risk")
+            findings.append("🤰 Gestational diabetes risk")
 
     if score == 0:
-        risk = "🟢 Low Risk"
+        risk = "🟢 Low"
     elif score <= 2:
-        risk = "🟡 Mild Risk"
+        risk = "🟡 Mild"
     elif score <= 3:
-        risk = "🟠 Moderate Risk"
+        risk = "🟠 Moderate"
     else:
-        risk = "🔴 High Risk"
+        risk = "🔴 High"
 
     return findings, risk
 
 
-# ---------- PDF FUNCTION ----------
-def create_pdf(report_text):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+# ---------- SAVE TO DATABASE ----------
+def save_data(patient_id, age, gender, hb, wbc, crp, glucose, risk):
 
-    for line in report_text.split("\n"):
-        pdf.cell(200, 10, txt=line, ln=True)
+    data = {
+        "PatientID": patient_id,
+        "Age": age,
+        "Gender": gender,
+        "Hb": hb,
+        "WBC": wbc,
+        "CRP": crp,
+        "Glucose": glucose,
+        "Risk": risk
+    }
 
-    file_path = "patient_report.pdf"
-    pdf.output(file_path)
+    df = pd.DataFrame([data])
 
-    return file_path
+    file = "patients_data.csv"
+
+    if os.path.exists(file):
+        df.to_csv(file, mode='a', header=False, index=False)
+    else:
+        df.to_csv(file, index=False)
 
 
-# ---------- RUN ----------
-if st.sidebar.button("Analyze"):
+# ---------- UI ACTION ----------
+if st.sidebar.button("Analyze & Save"):
 
     findings, risk = analyze()
 
-    # report text
-    full_report = "\n".join(findings) + "\n\nRisk Level: " + risk
+    save_data(patient_id, age, gender, hb, wbc, crp, glucose, risk)
 
     col1, col2 = st.columns(2)
 
@@ -96,7 +104,7 @@ if st.sidebar.button("Analyze"):
             st.write(f)
 
     with col2:
-        st.subheader("⚠️ Risk Level")
+        st.subheader("⚠️ Risk")
         st.markdown(f"### {risk}")
 
     # ---------- GRAPH ----------
@@ -107,20 +115,29 @@ if st.sidebar.button("Analyze"):
 
     fig, ax = plt.subplots()
     ax.bar(labels, values)
-    ax.set_title("Patient Lab Profile (Scaled)")
     st.pyplot(fig)
 
-    # ---------- PDF BUTTON ----------
-    if st.button("📄 Generate Patient Report PDF"):
 
-        file_path = create_pdf(full_report)
+# ---------- DATABASE VIEW ----------
+st.subheader("📁 Patient Database")
 
-        with open(file_path, "rb") as f:
-            pdf_data = f.read()
+if os.path.exists("patients_data.csv"):
+    db = pd.read_csv("patients_data.csv")
+    st.dataframe(db)
 
-        st.download_button(
-            label="⬇️ Download PDF",
-            data=pdf_data,
-            file_name="patient_report.pdf",
-            mime="application/pdf"
-        )
+    # ---------- SEARCH ----------
+    search_id = st.text_input("🔍 Search Patient by ID")
+
+    if search_id:
+        result = db[db["PatientID"] == search_id]
+        st.write(result)
+
+    # ---------- GRAPH FROM DB ----------
+    st.subheader("📊 Risk Distribution")
+
+    fig2, ax2 = plt.subplots()
+    db["Risk"].value_counts().plot(kind="bar", ax=ax2)
+    st.pyplot(fig2)
+
+else:
+    st.write("No data yet.")
