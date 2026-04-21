@@ -35,6 +35,7 @@ model = train_model()
 
 # ---------- SHAP SETUP ----------
 explainer = shap.TreeExplainer(model)
+
 feature_names = ["Hb", "WBC", "CRP", "Glucose"]
 
 # ---------- INPUTS ----------
@@ -46,7 +47,7 @@ wbc = st.sidebar.number_input("WBC", 0.0, 20000.0, 7000.0)
 crp = st.sidebar.number_input("CRP", 0.0, 100.0, 3.0)
 glucose = st.sidebar.number_input("Glucose", 0.0, 300.0, 90.0)
 
-# ---------- PREDICTION FUNCTION ----------
+# ---------- PREDICTION ----------
 def predict(model, hb, wbc, crp, glucose):
 
     input_data = np.array([[hb, wbc, crp, glucose]])
@@ -58,11 +59,16 @@ def predict(model, hb, wbc, crp, glucose):
 
     return risk, prob, input_data
 
-# ---------- SHAP FUNCTION ----------
+# ---------- SHAP EXPLANATION (FIXED SAFE VERSION) ----------
 def explain_shap(input_data):
 
     shap_values = explainer.shap_values(input_data)
-    shap_vals = shap_values[1][0]
+
+    # ✅ Safe handling (fixes IndexError across versions)
+    if isinstance(shap_values, list):
+        shap_vals = shap_values[1][0]
+    else:
+        shap_vals = shap_values[0]
 
     explanation = []
 
@@ -78,6 +84,7 @@ if st.sidebar.button("Run AI Analysis"):
     risk, prob, input_data = predict(model, hb, wbc, crp, glucose)
 
     st.subheader("🧠 Prediction Result")
+
     st.write("Patient ID:", patient_id)
     st.write("Risk:", risk)
     st.write("Probability:", round(prob, 2))
@@ -87,13 +94,13 @@ if st.sidebar.button("Run AI Analysis"):
     # ---------- SHAP ----------
     shap_vals, explanation = explain_shap(input_data)
 
-    st.subheader("📊 Why this decision? (SHAP Explanation)")
+    st.subheader("📊 Why this prediction? (SHAP Explanation)")
 
     for e in explanation:
         st.write("•", e)
 
     # ---------- VISUALIZATION ----------
-    st.subheader("📊 SHAP Impact Chart")
+    st.subheader("📊 Feature Impact")
 
     fig, ax = plt.subplots()
     ax.barh(feature_names, shap_vals)
