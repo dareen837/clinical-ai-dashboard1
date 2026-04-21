@@ -1,3 +1,7 @@
+st.image("https://i.pinimg.com/736x/93/64/09/9364092181bf28c06f6cc3b0de401ad3.jpg", use_container_width=True)
+
+st.title("🏥 AI Clinical Dashboard")
+st.caption("Welcome to your medical system")
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
