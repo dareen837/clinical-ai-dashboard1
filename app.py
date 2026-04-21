@@ -7,37 +7,28 @@ import os
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="AI Clinical System", layout="centered")
 
-# ---------- STYLE ----------
+# ---------- GLOBAL STYLE ----------
 st.markdown("""
 <style>
-/* background */
 .stApp {
     background-color: #ffe4ec;
 }
 
-/* center everything */
-.block-container {
-    text-align: center;
-    max-width: 800px;
-    margin: auto;
-}
-
-/* black text */
+/* كل الكلام أسود */
 html, body, [class*="css"]  {
     color: black;
+    text-align: center;
 }
 
-/* center image */
-img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* center buttons */
-.stButton>button {
-    display: block;
+/* كارت login */
+.login-box {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 350px;
     margin: auto;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.1);
+    text-align: center;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -48,30 +39,32 @@ st.image(
     use_container_width=True
 )
 
-# ---------- TITLE ----------
-st.markdown("<h1 style='text-align:center;'>🏥 AI Clinical Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Welcome to your medical system</p>", unsafe_allow_html=True)
+st.title("AI Clinical Dashboard")
+st.caption("Welcome to the medical system")
 
-# ---------- LOGIN ----------
+# ---------- SESSION ----------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-def login():
-    st.sidebar.title("🔐 Login")
+# ---------- LOGIN ----------
+if not st.session_state.logged_in:
 
-    user = st.sidebar.text_input("Username")
-    password = st.sidebar.text_input("Password", type="password")
+    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
-    if st.sidebar.button("Login"):
+    st.subheader("Doctor Login")
+
+    user = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
         if user == "doctor" and password == "1234":
             st.session_state.logged_in = True
-            st.success("Welcome Doctor 💙")
+            st.success("Login successful 💙")
         else:
             st.error("Wrong credentials")
 
-login()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-if not st.session_state.logged_in:
     st.stop()
 
 # ---------- INPUTS ----------
@@ -120,13 +113,13 @@ def analyze():
             findings.append("Gestational diabetes risk")
 
     if score == 0:
-        risk = "🟢 Low Risk"
+        risk = "Low Risk"
     elif score <= 2:
-        risk = "🟡 Mild Risk"
+        risk = "Mild Risk"
     elif score <= 3:
-        risk = "🟠 Moderate Risk"
+        risk = "Moderate Risk"
     else:
-        risk = "🔴 High Risk"
+        risk = "High Risk"
 
     return findings, risk
 
@@ -164,6 +157,8 @@ if st.sidebar.button("Run Analysis"):
     if "Low" in risk:
         st.success(risk)
     elif "Mild" in risk:
+        st.warning(risk)
+    elif "Moderate" in risk:
         st.warning(risk)
     else:
         st.error(risk)
