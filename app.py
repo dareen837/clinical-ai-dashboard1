@@ -3,21 +3,54 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 import os
-st.set_page_config(page_title="AI Clinical System", layout="wide")
-st.image("https://i.pinimg.com/736x/93/64/09/9364092181bf28c06f6cc3b0de401ad3.jpg", use_container_width=True)
-
-st.title("🏥 AI Clinical Dashboard")
-st.caption("Welcome to your medical system")
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="AI Clinical System", layout="wide")
 
-# ---------- LOGIN SYSTEM ----------
+# ---------- BACKGROUND + STYLE ----------
+st.markdown("""
+<style>
+/* Background pink */
+.stApp {
+    background-color: #ffd6e7;
+}
+
+/* Center everything */
+.block-container {
+    text-align: center;
+}
+
+/* Text color black */
+html, body, [class*="css"]  {
+    color: black;
+}
+
+/* Center images */
+img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- IMAGE ----------
+st.image(
+    "https://i.pinimg.com/736x/93/64/09/9364092181bf28c06f6cc3b0de401ad3.jpg",
+    use_container_width=True
+)
+
+# ---------- TITLE ----------
+st.markdown("<h1>🏥 AI Clinical Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<p>Welcome to your medical system</p>", unsafe_allow_html=True)
+
+# ---------- LOGIN ----------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 def login():
     st.sidebar.title("🔐 Login")
+
     user = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
 
@@ -26,16 +59,12 @@ def login():
             st.session_state.logged_in = True
             st.success("Welcome Doctor 💙")
         else:
-            st.error("Invalid credentials")
+            st.error("Wrong credentials")
 
 login()
 
 if not st.session_state.logged_in:
     st.stop()
-
-# ---------- TITLE ----------
-st.title("🏥 AI Clinical Decision Support System")
-st.caption("Patient Analysis • Risk Scoring • Medical Reports")
 
 # ---------- INPUTS ----------
 st.sidebar.header("Patient Data")
@@ -61,26 +90,26 @@ def analyze():
         hb_limit = 11
 
     if hb < hb_limit:
-        findings.append("🩸 Low Hb → anemia")
+        findings.append("Low Hb → anemia")
         score += 1
 
     if wbc > 11000:
-        findings.append("🦠 High WBC → infection")
+        findings.append("High WBC → infection")
         score += 1
 
     if crp > 5:
-        findings.append("🔥 High CRP → inflammation")
+        findings.append("High CRP → inflammation")
         score += 1
 
     if glucose > 110:
-        findings.append("🍬 High glucose → hyperglycemia")
+        findings.append("High glucose → hyperglycemia")
         score += 1
 
     if gender == "Female" and pregnant:
         if hb < 11:
-            findings.append("🤰 Pregnancy + low Hb risk")
+            findings.append("Pregnancy + low Hb risk")
         if glucose > 95:
-            findings.append("🤰 Gestational diabetes risk")
+            findings.append("Gestational diabetes risk")
 
     if score == 0:
         risk = "🟢 Low Risk"
@@ -93,34 +122,6 @@ def analyze():
 
     return findings, risk
 
-# ---------- AI REPORT ----------
-def generate_report(findings, risk, patient_id):
-
-    report = f"""
-    🏥 AI Medical Report
-
-    Patient ID: {patient_id}
-
-    ----------------------
-    Findings:
-    """
-
-    for f in findings:
-        report += f"\n- {f}"
-
-    report += f"""
-
-    ----------------------
-    Final Risk:
-    {risk}
-
-    ----------------------
-    Recommendation:
-    Clinical follow-up recommended.
-    """
-
-    return report
-
 # ---------- PDF ----------
 def create_pdf(text):
     pdf = FPDF()
@@ -132,7 +133,6 @@ def create_pdf(text):
 
     file_path = "report.pdf"
     pdf.output(file_path)
-
     return file_path
 
 # ---------- RUN ----------
@@ -140,7 +140,8 @@ if st.sidebar.button("Run Analysis"):
 
     findings, risk = analyze()
 
-    # metrics
+    st.subheader("Patient Overview")
+
     col1, col2, col3, col4 = st.columns(4)
 
     col1.metric("Hb", hb)
@@ -148,9 +149,10 @@ if st.sidebar.button("Run Analysis"):
     col3.metric("CRP", crp)
     col4.metric("Glucose", glucose)
 
-    st.divider()
+    st.markdown("---")
 
-    # risk
+    st.subheader("Risk Level")
+
     if "Low" in risk:
         st.success(risk)
     elif "Mild" in risk:
@@ -158,13 +160,12 @@ if st.sidebar.button("Run Analysis"):
     else:
         st.error(risk)
 
-    # findings
-    st.subheader("Clinical Findings")
+    st.subheader("Findings")
 
     for f in findings:
-        st.markdown(f"🩺 {f}")
+        st.write("🩺", f)
 
-    # graph
+    # ---------- GRAPH ----------
     st.subheader("Lab Profile")
 
     labels = ["Hb", "WBC", "CRP", "Glucose"]
@@ -174,26 +175,25 @@ if st.sidebar.button("Run Analysis"):
     ax.plot(labels, values, marker="o")
     st.pyplot(fig)
 
-    # report
-    report = generate_report(findings, risk, patient_id)
+    # ---------- REPORT ----------
+    report = f"Patient ID: {patient_id}\n\n" + "\n".join(findings) + f"\n\nRisk: {risk}"
 
-    st.subheader("🧠 AI Report")
+    st.subheader("Medical Report")
     st.text(report)
 
-    # pdf
     file_path = create_pdf(report)
 
     with open(file_path, "rb") as f:
         st.download_button(
-            "⬇️ Download PDF Report",
+            "Download PDF Report",
             f,
             file_name="medical_report.pdf",
             mime="application/pdf"
         )
 
 # ---------- DATABASE ----------
-st.divider()
-st.subheader("📁 Patient Database")
+st.markdown("---")
+st.subheader("Patient Database")
 
 data = {
     "PatientID": patient_id,
