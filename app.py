@@ -5,31 +5,39 @@ from fpdf import FPDF
 import os
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="AI Clinical System", layout="wide")
+st.set_page_config(page_title="AI Clinical System", layout="centered")
 
-# ---------- BACKGROUND + STYLE ----------
+# ---------- STYLE ----------
 st.markdown("""
 <style>
-/* Background pink */
+/* background */
 .stApp {
-    background-color: #ffd6e7;
+    background-color: #ffe4ec;
 }
 
-/* Center everything */
+/* center everything */
 .block-container {
     text-align: center;
+    max-width: 800px;
+    margin: auto;
 }
 
-/* Text color black */
+/* black text */
 html, body, [class*="css"]  {
     color: black;
 }
 
-/* Center images */
+/* center image */
 img {
     display: block;
     margin-left: auto;
     margin-right: auto;
+}
+
+/* center buttons */
+.stButton>button {
+    display: block;
+    margin: auto;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -41,8 +49,8 @@ st.image(
 )
 
 # ---------- TITLE ----------
-st.markdown("<h1>🏥 AI Clinical Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("<p>Welcome to your medical system</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🏥 AI Clinical Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Welcome to your medical system</p>", unsafe_allow_html=True)
 
 # ---------- LOGIN ----------
 if "logged_in" not in st.session_state:
