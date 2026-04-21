@@ -1,3 +1,5 @@
+from fpdf import FPDF
+import base64
 import streamlit as st
 import matplotlib.pyplot as plt
 
@@ -24,7 +26,7 @@ def analyze():
 
     findings = []
     score = 0
-
+full_report = "\n".join(findings) + "\n\nRisk Level: " + risk
     # Hb thresholds
     hb_limit = 12 if gender == "Female" else 13
 
@@ -88,6 +90,32 @@ if st.sidebar.button("Analyze"):
 
     # ---------- GRAPH ----------
     st.subheader("📊 Lab Visualization")
+
+    def create_pdf(report_text):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    for line in report_text.split("\n"):
+        pdf.cell(200, 10, txt=line, ln=True)
+
+    if st.button("📄 Generate Patient Report PDF"):
+
+    file_path = create_pdf(full_report)
+
+    with open(file_path, "rb") as f:
+        pdf_data = f.read()
+
+    st.download_button(
+        label="⬇️ Download PDF",
+        data=pdf_data,
+        file_name="patient_report.pdf",
+        mime="application/pdf"
+    )
+    
+    file_path = "patient_report.pdf"
+    pdf.output(file_path)
+    return file_path
 
     labels = ["Hb", "WBC", "CRP", "Glucose"]
     values = [hb, wbc/1000, crp, glucose/10]
