@@ -76,11 +76,32 @@ data = pd.DataFrame({
 })
 
 # ---------- MODEL ----------
-X = data[["hb", "wbc", "crp", "glucose"]]
-y = data["risk"]
+from sklearn.ensemble import RandomForestClassifier
 
-model = LogisticRegression()
-model.fit(X, y)
+@st.cache_resource
+def train_model():
+
+    data = pd.DataFrame({
+        "hb": [10, 14, 9, 13, 11, 15, 8, 12, 16, 9, 13, 7],
+        "wbc": [12000, 6000, 15000, 7000, 11000, 5000, 16000, 8000, 5500, 14000, 9000, 17000],
+        "crp": [10, 2, 15, 3, 8, 1, 20, 4, 2, 18, 5, 22],
+        "glucose": [130, 90, 150, 85, 120, 80, 160, 95, 88, 140, 100, 170],
+        "risk": [1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1]
+    })
+
+    X = data[["hb", "wbc", "crp", "glucose"]]
+    y = data["risk"]
+
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    )
+
+    model.fit(X, y)
+
+    return model
+
+model = train_model()
 
 # ---------- INPUTS ----------
 st.sidebar.header("Patient Data")
@@ -98,11 +119,15 @@ glucose = st.sidebar.number_input("Glucose", 0.0, 300.0, 90.0)
 # ---------- PREDICTION ----------
 def predict_risk(hb, wbc, crp, glucose):
 
-    pred = model.predict([[hb, wbc, crp, glucose]])[0]
-    prob = model.predict_proba([[hb, wbc, crp, glucose]])[0][1]
+    input_data = np.array([[hb, wbc, crp, glucose]])
 
-    if pred == 0:
+    pred = model.predict(input_data)[0]
+    prob = model.predict_proba(input_data)[0][1]
+
+    if prob < 0.3:
         risk = "🟢 Low Risk"
+    elif prob < 0.6:
+        risk = "🟡 Moderate Risk"
     else:
         risk = "🔴 High Risk"
 
