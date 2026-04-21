@@ -11,30 +11,41 @@ st.set_page_config(page_title="AI Clinical System", layout="centered")
 st.markdown("""
 <style>
 .stApp {
-    background-color: #dbeeff;  /* 💙 light blue */
+    background-color: #0b1f3a;  /* 💙 dark blue */
 }
 
-/* كل النص أسود */
+/* كل النص أبيض أو أوضح على الخلفية الغامقة */
 html, body, [class*="css"] {
-    color: black;
+    color: white;
     text-align: center;
 }
 
-/* كارت login */
+/* login card */
 .login-box {
-    background: white;
+    background: #112a4d;
     padding: 30px;
     border-radius: 15px;
     width: 350px;
     margin: auto;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.4);
     text-align: center;
 }
 
-/* أزرار في النص */
+/* buttons */
 .stButton>button {
+    background-color: #1f6feb;
+    color: white;
+    border-radius: 10px;
     display: block;
     margin: auto;
+}
+
+/* metrics */
+div[data-testid="metric-container"] {
+    background-color: #112a4d;
+    padding: 10px;
+    border-radius: 10px;
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -45,8 +56,8 @@ st.image(
     use_container_width=True
 )
 
-st.title("AI Clinical Dashboard")
-st.caption("Welcome to the medical system")
+st.title("🏥 AI Clinical Dashboard")
+st.caption("Welcome to the medical decision system")
 
 # ---------- SESSION ----------
 if "logged_in" not in st.session_state:
@@ -118,13 +129,13 @@ def analyze():
             findings.append("Gestational diabetes risk")
 
     if score == 0:
-        risk = "Low Risk"
+        risk = "🟢 Low Risk"
     elif score <= 2:
-        risk = "Mild Risk"
+        risk = "🟡 Mild Risk"
     elif score <= 3:
-        risk = "Moderate Risk"
+        risk = "🟠 Moderate Risk"
     else:
-        risk = "High Risk"
+        risk = "🔴 High Risk"
 
     return findings, risk
 
@@ -146,14 +157,7 @@ if st.sidebar.button("Run Analysis"):
 
     st.subheader("Risk Level")
 
-    if "Low" in risk:
-        st.success(risk)
-    elif "Mild" in risk:
-        st.warning(risk)
-    elif "Moderate" in risk:
-        st.warning(risk)
-    else:
-        st.error(risk)
+    st.write(risk)
 
     st.subheader("Findings")
 
@@ -168,6 +172,10 @@ if st.sidebar.button("Run Analysis"):
 
     fig, ax = plt.subplots()
     ax.plot(labels, values, marker="o")
+    ax.set_facecolor("#0b1f3a")
+    fig.patch.set_facecolor("#0b1f3a")
+    ax.tick_params(colors="white")
+
     st.pyplot(fig)
 
     # ---------- REPORT ----------
